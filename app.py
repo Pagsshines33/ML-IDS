@@ -26,7 +26,6 @@ FEATURE_COLUMNS = [
 ]
 
 CATEGORICAL_COLS = ["protocol_type", "service", "flag"]
-NUMERICAL_COLS = [c for c in FEATURE_COLUMNS if c not in CATEGORICAL_COLS]
 
 
 def load_model():
@@ -38,12 +37,14 @@ def load_model():
         print("Model loaded successfully!")
         print(f"   Classes: {MODEL['classes']}")
         print(f"   Accuracy: {MODEL['accuracy']:.4f}")
+        print(f"   Feature columns: {len(MODEL['feature_cols'])}")
     else:
         print("No trained model found. Please run: python model/train_model.py")
         MODEL = None
 
 
-def preprocess_input(data_dict):
+def preprocess_single(values_list):
+    """Preprocess a list of values (in feature column order) into model-ready features."""
     if MODEL is None:
         return None
 
@@ -51,18 +52,22 @@ def preprocess_input(data_dict):
     encoders = MODEL["encoders"]
     scaler = MODEL["scaler"]
 
-    # Make sure data_dict is actually a dictionary
-    if not isinstance(data_dict, dict):
-        return None
-
     features = []
-    for col in feature_cols:
-        val = data_dict.get(col, 0)
-
-        # Handle NaN values
-        if pd.isna(val) if not isinstance(val, str) else False:
+    for i, col in enumerate(feature_cols):
+        # Get value by index from the list
+        if i < len(values_list):
+            val = values_list[i]
+        else:
             val = 0
 
+        # Handle NaN
+        try:
+            if pd.isna(val):
+                val = 0
+        except (TypeError, ValueError):
+            pass
+
+        # Encode categorical or convert to float
         if col in CATEGORICAL_COLS and col in encoders:
             try:
                 val = encoders[col].transform([str(val).strip()])[0]
@@ -73,6 +78,7 @@ def preprocess_input(data_dict):
                 val = float(val)
             except (ValueError, TypeError):
                 val = 0.0
+
         features.append(val)
 
     features = np.array(features).reshape(1, -1)
@@ -80,15 +86,12 @@ def preprocess_input(data_dict):
     return features
 
 
-def predict_single(data_dict):
+def predict_from_values(values_list):
+    """Make a prediction from a list of feature values."""
     if MODEL is None:
         return {"error": "Model not loaded"}
 
-    # Make sure it's a dictionary
-    if not isinstance(data_dict, dict):
-        return {"error": "Invalid input format"}
-
-    features = preprocess_input(data_dict)
+    features = preprocess_single(values_list)
     if features is None:
         return {"error": "Preprocessing failed"}
 
@@ -114,39 +117,18 @@ def predict_single(data_dict):
     return result
 
 
-def predict_batch(df):
-    """Make predictions for a batch of connections (DataFrame)."""
+def predict_from_dict(data_dict):
+    """Make a prediction from a dictionary of feature names to values."""
     if MODEL is None:
-        return [{"error": "Model not loaded"}]
+        return {"error": "Model not loaded"}
 
-    results = []
-    for idx, row in df.iterrows():
-        try:
-            # Convert row to dictionary properly
-            data_dict = {}
-            feature_cols = MODEL["feature_cols"]
+    feature_cols = MODEL["feature_cols"]
+    values_list = []
+    for col in feature_cols:
+        val = data_dict.get(col, 0)
+        values_list.append(val)
 
-            for i, col in enumerate(feature_cols):
-                if col in df.columns:
-                    data_dict[col] = row[col]
-                elif i < len(row):
-                    data_dict[col] = row.iloc[i]
-                else:
-                    data_dict[col] = 0
-
-            result = predict_single(data_dict)
-            results.append(result)
-        except Exception as e:
-            results.append({
-                "prediction": "Error",
-                "confidence": 0,
-                "probabilities": {},
-                "is_attack": False,
-                "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                "error": str(e)
-            })
-
-    return results
+    return predict_from_values(values_list)
 
 
 @app.route("/")
@@ -160,14 +142,16 @@ def predict():
     if request.method == "GET":
         return render_template("predict.html", result=None)
 
+    # Handle manual input
     if "manual_submit" in request.form:
         data = {}
         for col in FEATURE_COLUMNS:
             val = request.form.get(col, "0")
             data[col] = val
-        result = predict_single(data)
+        result = predict_from_dict(data)
         return render_template("predict.html", result=result, input_data=data)
 
+    # Handle file upload
     if "file" in request.files:
         file = request.files["file"]
         if file.filename == "":
@@ -177,38 +161,42 @@ def predict():
             return render_template("predict.html", result=None, error="Please upload a CSV file")
 
         try:
+            # Read CSV without headers
             df = pd.read_csv(file, header=None)
 
-            # Assign column names based on number of columns
-            feature_cols = MODEL["feature_cols"] if MODEL else FEATURE_COLUMNS
-            num_features = len(feature_cols)
+            print(f"CSV loaded: {df.shape[0]} rows x {df.shape[1]} columns")
 
-            if len(df.columns) == num_features:
-                df.columns = feature_cols
-            elif len(df.columns) == num_features + 1:
-                df.columns = feature_cols + ["label"]
-            elif len(df.columns) == num_features + 2:
-                df.columns = feature_cols + ["label", "difficulty"]
-            elif len(df.columns) == 41:
-                df.columns = FEATURE_COLUMNS
-            elif len(df.columns) == 42:
-                df.columns = FEATURE_COLUMNS + ["label"]
-            elif len(df.columns) == 43:
-                df.columns = FEATURE_COLUMNS + ["label", "difficulty"]
-            else:
-                # Try to use first N columns as features
-                if len(df.columns) >= len(FEATURE_COLUMNS):
-                    col_names = FEATURE_COLUMNS + [f"extra_{i}" for i in range(len(df.columns) - len(FEATURE_COLUMNS))]
-                    df.columns = col_names[:len(df.columns)]
-                else:
-                    return render_template("predict.html", result=None,
-                                           error=f"CSV has {len(df.columns)} columns, expected at least {len(FEATURE_COLUMNS)}")
+            # Determine how many feature columns the model expects
+            num_model_features = len(MODEL["feature_cols"]) if MODEL else len(FEATURE_COLUMNS)
 
-            results = predict_batch(df)
+            print(f"Model expects: {num_model_features} features")
+            print(f"CSV has: {df.shape[1]} columns")
 
-            # Filter out error results for summary
-            valid_results = [r for r in results if "error" not in r or r.get("prediction") != "Error"]
+            results = []
+            for idx in range(len(df)):
+                try:
+                    # Get the row as a list of values
+                    row_values = df.iloc[idx].tolist()
 
+                    # Only take the first N values (number of features the model needs)
+                    feature_values = row_values[:num_model_features]
+
+                    result = predict_from_values(feature_values)
+                    results.append(result)
+                except Exception as e:
+                    print(f"Error on row {idx}: {e}")
+                    results.append({
+                        "prediction": "Error",
+                        "confidence": 0,
+                        "probabilities": {},
+                        "is_attack": False,
+                        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    })
+
+            print(f"Processed {len(results)} predictions")
+
+            # Calculate summary
+            valid_results = [r for r in results if r.get("prediction") != "Error"]
             summary = {
                 "total": len(results),
                 "normal": sum(1 for r in valid_results if not r.get("is_attack", True)),
@@ -220,7 +208,11 @@ def predict():
                 summary["attack_types"][pred] = summary["attack_types"].get(pred, 0) + 1
 
             return render_template("predict.html", batch_results=results, summary=summary)
+
         except Exception as e:
+            print(f"Error processing CSV: {e}")
+            import traceback
+            traceback.print_exc()
             return render_template("predict.html", result=None, error=f"Error processing file: {str(e)}")
 
     return render_template("predict.html", result=None)
@@ -255,7 +247,7 @@ def api_predict():
     if not data:
         return jsonify({"error": "No data provided"}), 400
 
-    result = predict_single(data)
+    result = predict_from_dict(data)
     return jsonify(result)
 
 
