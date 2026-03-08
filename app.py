@@ -31,7 +31,7 @@ NUMERICAL_COLS = [c for c in FEATURE_COLUMNS if c not in CATEGORICAL_COLS]
 
 def load_model():
     global MODEL
-    model_path = os.path.join(os.path.dirname(__file__), "model", "ids_model.pkl")
+    model_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "model", "ids_model.pkl")
     if os.path.exists(model_path):
         with open(model_path, "rb") as f:
             MODEL = pickle.load(f)
@@ -51,13 +51,22 @@ def preprocess_input(data_dict):
     encoders = MODEL["encoders"]
     scaler = MODEL["scaler"]
 
+    # Make sure data_dict is actually a dictionary
+    if not isinstance(data_dict, dict):
+        return None
+
     features = []
     for col in feature_cols:
         val = data_dict.get(col, 0)
+
+        # Handle NaN values
+        if pd.isna(val) if not isinstance(val, str) else False:
+            val = 0
+
         if col in CATEGORICAL_COLS and col in encoders:
             try:
-                val = encoders[col].transform([str(val)])[0]
-            except ValueError:
+                val = encoders[col].transform([str(val).strip()])[0]
+            except (ValueError, KeyError):
                 val = 0
         else:
             try:
@@ -74,6 +83,10 @@ def preprocess_input(data_dict):
 def predict_single(data_dict):
     if MODEL is None:
         return {"error": "Model not loaded"}
+
+    # Make sure it's a dictionary
+    if not isinstance(data_dict, dict):
+        return {"error": "Invalid input format"}
 
     features = preprocess_input(data_dict)
     if features is None:
@@ -102,14 +115,37 @@ def predict_single(data_dict):
 
 
 def predict_batch(df):
+    """Make predictions for a batch of connections (DataFrame)."""
     if MODEL is None:
-        return {"error": "Model not loaded"}
+        return [{"error": "Model not loaded"}]
 
     results = []
-    for _, row in df.iterrows():
-        data_dict = row.to_dict()
-        result = predict_single(data_dict)
-        results.append(result)
+    for idx, row in df.iterrows():
+        try:
+            # Convert row to dictionary properly
+            data_dict = {}
+            feature_cols = MODEL["feature_cols"]
+
+            for i, col in enumerate(feature_cols):
+                if col in df.columns:
+                    data_dict[col] = row[col]
+                elif i < len(row):
+                    data_dict[col] = row.iloc[i]
+                else:
+                    data_dict[col] = 0
+
+            result = predict_single(data_dict)
+            results.append(result)
+        except Exception as e:
+            results.append({
+                "prediction": "Error",
+                "confidence": 0,
+                "probabilities": {},
+                "is_attack": False,
+                "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "error": str(e)
+            })
+
     return results
 
 
@@ -141,22 +177,45 @@ def predict():
             return render_template("predict.html", result=None, error="Please upload a CSV file")
 
         try:
-            df = pd.read_csv(file)
-            if len(df.columns) == 42:
-                col_names = FEATURE_COLUMNS + ["label"]
-                df.columns = col_names[:len(df.columns)]
+            df = pd.read_csv(file, header=None)
+
+            # Assign column names based on number of columns
+            feature_cols = MODEL["feature_cols"] if MODEL else FEATURE_COLUMNS
+            num_features = len(feature_cols)
+
+            if len(df.columns) == num_features:
+                df.columns = feature_cols
+            elif len(df.columns) == num_features + 1:
+                df.columns = feature_cols + ["label"]
+            elif len(df.columns) == num_features + 2:
+                df.columns = feature_cols + ["label", "difficulty"]
+            elif len(df.columns) == 41:
+                df.columns = FEATURE_COLUMNS
+            elif len(df.columns) == 42:
+                df.columns = FEATURE_COLUMNS + ["label"]
             elif len(df.columns) == 43:
-                col_names = FEATURE_COLUMNS + ["label", "difficulty"]
-                df.columns = col_names[:len(df.columns)]
+                df.columns = FEATURE_COLUMNS + ["label", "difficulty"]
+            else:
+                # Try to use first N columns as features
+                if len(df.columns) >= len(FEATURE_COLUMNS):
+                    col_names = FEATURE_COLUMNS + [f"extra_{i}" for i in range(len(df.columns) - len(FEATURE_COLUMNS))]
+                    df.columns = col_names[:len(df.columns)]
+                else:
+                    return render_template("predict.html", result=None,
+                                           error=f"CSV has {len(df.columns)} columns, expected at least {len(FEATURE_COLUMNS)}")
 
             results = predict_batch(df)
+
+            # Filter out error results for summary
+            valid_results = [r for r in results if "error" not in r or r.get("prediction") != "Error"]
+
             summary = {
                 "total": len(results),
-                "normal": sum(1 for r in results if not r.get("is_attack", True)),
-                "attacks": sum(1 for r in results if r.get("is_attack", False)),
+                "normal": sum(1 for r in valid_results if not r.get("is_attack", True)),
+                "attacks": sum(1 for r in valid_results if r.get("is_attack", False)),
                 "attack_types": {},
             }
-            for r in results:
+            for r in valid_results:
                 pred = r.get("prediction", "Unknown")
                 summary["attack_types"][pred] = summary["attack_types"].get(pred, 0) + 1
 
