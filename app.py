@@ -1,4 +1,5 @@
 import os
+import sys
 import pickle
 import numpy as np
 import pandas as pd
@@ -28,23 +29,92 @@ FEATURE_COLUMNS = [
 CATEGORICAL_COLS = ["protocol_type", "service", "flag"]
 
 
+def find_model_file():
+    """Search for the model file in multiple possible locations."""
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    possible_paths = [
+        os.path.join(base_dir, "model", "ids_model.pkl"),
+        os.path.join(base_dir, "ids_model.pkl"),
+        os.path.join(os.getcwd(), "model", "ids_model.pkl"),
+        os.path.join(os.getcwd(), "ids_model.pkl"),
+        "model/ids_model.pkl",
+        "ids_model.pkl",
+    ]
+
+    print(f"Base directory: {base_dir}")
+    print(f"Current working directory: {os.getcwd()}")
+
+    for path in possible_paths:
+        abs_path = os.path.abspath(path)
+        exists = os.path.exists(abs_path)
+        print(f"  Checking: {abs_path} -> {'FOUND' if exists else 'not found'}")
+        if exists:
+            return abs_path
+
+    # List what files ARE in the directory
+    print(f"\nFiles in base dir ({base_dir}):")
+    try:
+        for item in os.listdir(base_dir):
+            item_path = os.path.join(base_dir, item)
+            if os.path.isdir(item_path):
+                print(f"  [DIR]  {item}/")
+                try:
+                    for sub_item in os.listdir(item_path):
+                        print(f"         - {sub_item}")
+                except Exception:
+                    pass
+            else:
+                size = os.path.getsize(item_path)
+                print(f"  [FILE] {item} ({size} bytes)")
+    except Exception as e:
+        print(f"  Error listing directory: {e}")
+
+    return None
+
+
 def load_model():
+    """Load the trained model artifacts."""
     global MODEL
-    model_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "model", "ids_model.pkl")
-    if os.path.exists(model_path):
+
+    print("\n" + "=" * 60)
+    print("  Loading ML Model...")
+    print("=" * 60)
+
+    model_path = find_model_file()
+
+    if model_path is None:
+        print("\nWARNING: No trained model found!")
+        print("Please make sure 'model/ids_model.pkl' exists.")
+        print("Run: python model/train_model.py")
+        print("=" * 60 + "\n")
+        MODEL = None
+        return
+
+    try:
+        file_size = os.path.getsize(model_path)
+        print(f"\nLoading model from: {model_path}")
+        print(f"File size: {file_size:,} bytes")
+
         with open(model_path, "rb") as f:
             MODEL = pickle.load(f)
-        print("Model loaded successfully!")
-        print(f"   Classes: {MODEL['classes']}")
-        print(f"   Accuracy: {MODEL['accuracy']:.4f}")
-        print(f"   Feature columns: {len(MODEL['feature_cols'])}")
-    else:
-        print("No trained model found. Please run: python model/train_model.py")
+
+        print(f"Model loaded successfully!")
+        print(f"  Classes: {MODEL['classes']}")
+        print(f"  Accuracy: {MODEL['accuracy']:.4f}")
+        print(f"  Feature columns: {len(MODEL['feature_cols'])}")
+        print(f"  Encoders: {list(MODEL['encoders'].keys())}")
+        print("=" * 60 + "\n")
+
+    except Exception as e:
+        print(f"\nERROR loading model: {e}")
+        import traceback
+        traceback.print_exc()
+        print("=" * 60 + "\n")
         MODEL = None
 
 
 def preprocess_single(values_list):
-    """Preprocess a list of values (in feature column order) into model-ready features."""
+    """Preprocess a list of values into model-ready features."""
     if MODEL is None:
         return None
 
@@ -54,20 +124,17 @@ def preprocess_single(values_list):
 
     features = []
     for i, col in enumerate(feature_cols):
-        # Get value by index from the list
         if i < len(values_list):
             val = values_list[i]
         else:
             val = 0
 
-        # Handle NaN
         try:
             if pd.isna(val):
                 val = 0
         except (TypeError, ValueError):
             pass
 
-        # Encode categorical or convert to float
         if col in CATEGORICAL_COLS and col in encoders:
             try:
                 val = encoders[col].transform([str(val).strip()])[0]
@@ -89,11 +156,25 @@ def preprocess_single(values_list):
 def predict_from_values(values_list):
     """Make a prediction from a list of feature values."""
     if MODEL is None:
-        return {"error": "Model not loaded"}
+        return {
+            "prediction": "Unknown",
+            "confidence": 0,
+            "probabilities": {},
+            "is_attack": False,
+            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "error": "Model not loaded"
+        }
 
     features = preprocess_single(values_list)
     if features is None:
-        return {"error": "Preprocessing failed"}
+        return {
+            "prediction": "Unknown",
+            "confidence": 0,
+            "probabilities": {},
+            "is_attack": False,
+            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "error": "Preprocessing failed"
+        }
 
     prediction = MODEL["model"].predict(features)[0]
     probabilities = MODEL["model"].predict_proba(features)[0]
@@ -118,9 +199,16 @@ def predict_from_values(values_list):
 
 
 def predict_from_dict(data_dict):
-    """Make a prediction from a dictionary of feature names to values."""
+    """Make a prediction from a dictionary."""
     if MODEL is None:
-        return {"error": "Model not loaded"}
+        return {
+            "prediction": "Unknown",
+            "confidence": 0,
+            "probabilities": {},
+            "is_attack": False,
+            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "error": "Model not loaded"
+        }
 
     feature_cols = MODEL["feature_cols"]
     values_list = []
@@ -140,7 +228,14 @@ def index():
 @app.route("/predict", methods=["GET", "POST"])
 def predict():
     if request.method == "GET":
-        return render_template("predict.html", result=None)
+        model_status = "loaded" if MODEL else "not_loaded"
+        return render_template("predict.html", result=None, model_status=model_status)
+
+    # Check if model is loaded
+    if MODEL is None:
+        return render_template("predict.html", result=None,
+                               error="Model is not loaded! Please make sure model/ids_model.pkl exists on the server. Run: python model/train_model.py",
+                               model_status="not_loaded")
 
     # Handle manual input
     if "manual_submit" in request.form:
@@ -149,38 +244,32 @@ def predict():
             val = request.form.get(col, "0")
             data[col] = val
         result = predict_from_dict(data)
-        return render_template("predict.html", result=result, input_data=data)
+        return render_template("predict.html", result=result, input_data=data, model_status="loaded")
 
     # Handle file upload
     if "file" in request.files:
         file = request.files["file"]
         if file.filename == "":
-            return render_template("predict.html", result=None, error="No file selected")
+            return render_template("predict.html", result=None, error="No file selected", model_status="loaded")
 
         if not file.filename.endswith(".csv"):
-            return render_template("predict.html", result=None, error="Please upload a CSV file")
+            return render_template("predict.html", result=None, error="Please upload a CSV file", model_status="loaded")
 
         try:
-            # Read CSV without headers
             df = pd.read_csv(file, header=None)
 
-            print(f"CSV loaded: {df.shape[0]} rows x {df.shape[1]} columns")
+            print(f"\n--- CSV Upload ---")
+            print(f"Rows: {df.shape[0]}, Columns: {df.shape[1]}")
+            print(f"First row sample: {df.iloc[0].tolist()[:5]}...")
 
-            # Determine how many feature columns the model expects
-            num_model_features = len(MODEL["feature_cols"]) if MODEL else len(FEATURE_COLUMNS)
-
-            print(f"Model expects: {num_model_features} features")
-            print(f"CSV has: {df.shape[1]} columns")
+            num_model_features = len(MODEL["feature_cols"])
+            print(f"Model expects {num_model_features} features")
 
             results = []
             for idx in range(len(df)):
                 try:
-                    # Get the row as a list of values
                     row_values = df.iloc[idx].tolist()
-
-                    # Only take the first N values (number of features the model needs)
                     feature_values = row_values[:num_model_features]
-
                     result = predict_from_values(feature_values)
                     results.append(result)
                 except Exception as e:
@@ -193,9 +282,12 @@ def predict():
                         "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                     })
 
-            print(f"Processed {len(results)} predictions")
+            print(f"Total predictions: {len(results)}")
+            if results:
+                attacks = sum(1 for r in results if r.get("is_attack", False))
+                print(f"Attacks detected: {attacks}")
+                print(f"Sample prediction: {results[0]}")
 
-            # Calculate summary
             valid_results = [r for r in results if r.get("prediction") != "Error"]
             summary = {
                 "total": len(results),
@@ -207,15 +299,19 @@ def predict():
                 pred = r.get("prediction", "Unknown")
                 summary["attack_types"][pred] = summary["attack_types"].get(pred, 0) + 1
 
-            return render_template("predict.html", batch_results=results, summary=summary)
+            print(f"Summary: {summary}")
+            print(f"--- End CSV Upload ---\n")
+
+            return render_template("predict.html", batch_results=results, summary=summary, model_status="loaded")
 
         except Exception as e:
             print(f"Error processing CSV: {e}")
             import traceback
             traceback.print_exc()
-            return render_template("predict.html", result=None, error=f"Error processing file: {str(e)}")
+            return render_template("predict.html", result=None,
+                                   error=f"Error processing file: {str(e)}", model_status="loaded")
 
-    return render_template("predict.html", result=None)
+    return render_template("predict.html", result=None, model_status="loaded")
 
 
 @app.route("/dashboard")
@@ -256,6 +352,21 @@ def api_stats():
     return jsonify(get_stats_data())
 
 
+@app.route("/api/health")
+def api_health():
+    """Health check endpoint — use this to verify model is loaded on deployed server."""
+    return jsonify({
+        "status": "ok",
+        "model_loaded": MODEL is not None,
+        "model_accuracy": round(MODEL["accuracy"] * 100, 2) if MODEL else 0,
+        "model_classes": MODEL["classes"] if MODEL else [],
+        "feature_count": len(MODEL["feature_cols"]) if MODEL else 0,
+        "python_version": sys.version,
+        "working_directory": os.getcwd(),
+        "model_file_exists": os.path.exists(os.path.join(os.path.dirname(os.path.abspath(__file__)), "model", "ids_model.pkl")),
+    })
+
+
 def get_stats_data():
     total = len(DETECTION_HISTORY)
     if total == 0:
@@ -282,6 +393,8 @@ def get_stats_data():
     }
 
 
+# Load model when the module is imported (works with gunicorn/deployment)
+load_model()
+
 if __name__ == "__main__":
-    load_model()
     app.run(debug=True, host="0.0.0.0", port=5000)
