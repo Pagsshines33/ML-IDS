@@ -1,0 +1,248 @@
+{% extends "base.html" %}
+{% block title %}Detect{% endblock %}
+
+{% block content %}
+<section class="page-section py-5" style="margin-top: 80px;">
+    <div class="container">
+        <div class="text-center mb-5">
+            <h2 class="section-title"><i class="fas fa-search-plus me-2"></i>Network Traffic <span class="text-glow">Detection</span></h2>
+            <p class="section-subtitle">Upload a CSV file or enter connection details manually</p>
+        </div>
+
+        {% if error %}
+        <div class="alert alert-danger alert-dismissible fade show cyber-alert" role="alert">
+            <i class="fas fa-exclamation-triangle me-2"></i>{{ error }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endif %}
+
+        <div class="row g-4">
+            <div class="col-lg-6">
+                <div class="cyber-card h-100">
+                    <h4 class="card-title mb-4">
+                        <i class="fas fa-file-csv me-2 text-glow"></i>Batch Detection (CSV)
+                    </h4>
+                    <form method="POST" enctype="multipart/form-data" id="uploadForm">
+                        <div class="upload-zone" id="dropZone">
+                            <i class="fas fa-cloud-upload-alt upload-icon"></i>
+                            <p class="mb-2">Drag & drop your CSV file here</p>
+                            <p class="text-muted small">or click to browse</p>
+                            <input type="file" name="file" id="fileInput" accept=".csv" class="d-none">
+                            <div id="fileName" class="mt-2 text-glow"></div>
+                        </div>
+                        <button type="submit" class="btn btn-glow w-100 mt-3">
+                            <i class="fas fa-search me-2"></i>Analyze Traffic
+                        </button>
+                    </form>
+                    <div class="mt-3">
+                        <small class="text-white">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Upload NSL-KDD formatted CSV with 41-43 columns
+                        </small>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-6">
+                <div class="cyber-card h-100">
+                    <h4 class="card-title mb-4">
+                        <i class="fas fa-keyboard me-2 text-glow"></i>Single Connection
+                    </h4>
+                    <form method="POST" id="manualForm">
+                        <input type="hidden" name="manual_submit" value="1">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Duration</label>
+                                <input type="number" name="duration" class="form-control cyber-input" value="{{ input_data.duration if input_data else '0' }}" placeholder="0">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Protocol Type</label>
+                                <select name="protocol_type" class="form-select cyber-input">
+                                    <option value="tcp" {{ 'selected' if input_data and input_data.protocol_type == 'tcp' }}>TCP</option>
+                                    <option value="udp" {{ 'selected' if input_data and input_data.protocol_type == 'udp' }}>UDP</option>
+                                    <option value="icmp" {{ 'selected' if input_data and input_data.protocol_type == 'icmp' }}>ICMP</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Service</label>
+                                <select name="service" class="form-select cyber-input">
+                                    {% for svc in ['http','smtp','ftp','ssh','dns','telnet','finger','pop_3','nntp','imap4','discard','systat','daytime','netstat','echo','other','private'] %}
+                                    <option value="{{ svc }}" {{ 'selected' if input_data and input_data.service == svc }}>{{ svc }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Flag</label>
+                                <select name="flag" class="form-select cyber-input">
+                                    {% for fl in ['SF','S0','REJ','RSTR','RSTO','SH','S1','S2','RSTOS0','S3','OTH'] %}
+                                    <option value="{{ fl }}" {{ 'selected' if input_data and input_data.flag == fl }}>{{ fl }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Source Bytes</label>
+                                <input type="number" name="src_bytes" class="form-control cyber-input" value="{{ input_data.src_bytes if input_data else '0' }}" placeholder="0">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Destination Bytes</label>
+                                <input type="number" name="dst_bytes" class="form-control cyber-input" value="{{ input_data.dst_bytes if input_data else '0' }}" placeholder="0">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Count</label>
+                                <input type="number" name="count" class="form-control cyber-input" value="{{ input_data.count if input_data else '0' }}" placeholder="0">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Srv Count</label>
+                                <input type="number" name="srv_count" class="form-control cyber-input" value="{{ input_data.srv_count if input_data else '0' }}" placeholder="0">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Serror Rate</label>
+                                <input type="number" step="0.01" name="serror_rate" class="form-control cyber-input" value="{{ input_data.serror_rate if input_data else '0' }}" placeholder="0.0">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Logged In</label>
+                                <select name="logged_in" class="form-select cyber-input">
+                                    <option value="0">No</option>
+                                    <option value="1" {{ 'selected' if input_data and input_data.logged_in == '1' }}>Yes</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Root Shell</label>
+                                <select name="root_shell" class="form-select cyber-input">
+                                    <option value="0">No</option>
+                                    <option value="1" {{ 'selected' if input_data and input_data.root_shell == '1' }}>Yes</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Failed Logins</label>
+                                <input type="number" name="num_failed_logins" class="form-control cyber-input" value="{{ input_data.num_failed_logins if input_data else '0' }}" placeholder="0">
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-glow w-100 mt-4">
+                            <i class="fas fa-crosshairs me-2"></i>Classify Connection
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        {% if result and not result.error %}
+        <div class="row mt-5">
+            <div class="col-12">
+                <div class="cyber-card result-card {% if result.is_attack %}result-attack{% else %}result-normal{% endif %}">
+                    <div class="row align-items-center">
+                        <div class="col-md-4 text-center">
+                            <div class="result-icon">
+                                {% if result.is_attack %}
+                                <i class="fas fa-exclamation-triangle text-danger"></i>
+                                {% else %}
+                                <i class="fas fa-check-circle text-success"></i>
+                                {% endif %}
+                            </div>
+                            <h3 class="result-label mt-2">{{ result.prediction }}</h3>
+                            <p class="result-confidence">
+                                Confidence: <strong>{{ result.confidence }}%</strong>
+                            </p>
+                        </div>
+                        <div class="col-md-8">
+                            <h5 class="mb-3">Probability Distribution</h5>
+                            <div class="probabilities">
+                                {% for cls, prob in result.probabilities.items() %}
+                                <div class="prob-item mb-2">
+                                    <div class="d-flex justify-content-between mb-1">
+                                        <span>{{ cls }}</span>
+                                        <span>{{ prob }}%</span>
+                                    </div>
+                                    <div class="progress cyber-progress">
+                                        <div class="progress-bar {% if cls == result.prediction %}progress-bar-active{% endif %}"
+                                             style="width: {{ prob }}%"></div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if batch_results %}
+        <div class="row mt-5">
+            <div class="col-12">
+                <div class="cyber-card">
+                    <h4 class="card-title mb-4">
+                        <i class="fas fa-list me-2 text-glow"></i>Batch Analysis Results
+                    </h4>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-3">
+                            <div class="mini-stat-card">
+                                <div class="mini-stat-number">{{ summary.total }}</div>
+                                <div class="mini-stat-label">Total Analyzed</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mini-stat-card stat-normal">
+                                <div class="mini-stat-number">{{ summary.normal }}</div>
+                                <div class="mini-stat-label">Normal</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mini-stat-card stat-attack">
+                                <div class="mini-stat-number">{{ summary.attacks }}</div>
+                                <div class="mini-stat-label">Attacks</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mini-stat-card">
+                                <div class="mini-stat-number">
+                                    {{ ((summary.attacks / summary.total) * 100) | round(1) if summary.total > 0 else 0 }}%
+                                </div>
+                                <div class="mini-stat-label">Attack Rate</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table cyber-table">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Prediction</th>
+                                    <th>Confidence</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for r in batch_results[:100] %}
+                                <tr>
+                                    <td>{{ loop.index }}</td>
+                                    <td>
+                                        <span class="badge {% if r.is_attack %}bg-danger{% else %}bg-success{% endif %}">
+                                            {{ r.prediction }}
+                                        </span>
+                                    </td>
+                                    <td>{{ r.confidence }}%</td>
+                                    <td>
+                                        {% if r.is_attack %}
+                                        <i class="fas fa-exclamation-triangle text-danger"></i> Attack
+                                        {% else %}
+                                        <i class="fas fa-check text-success"></i> Safe
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% if batch_results|length > 100 %}
+                    <p class="text-muted text-center mt-2">
+                        Showing first 100 of {{ batch_results|length }} results
+                    </p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}

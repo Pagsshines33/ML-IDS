@@ -1,0 +1,184 @@
+{% extends "base.html" %}
+{% block title %}Home{% endblock %}
+
+{% block content %}
+<section class="hero-section">
+    <div class="container">
+        <div class="row align-items-center min-vh-100">
+            <div class="col-lg-7">
+                <div class="hero-badge mb-3">
+                    <i class="fas fa-robot"></i> AI-Powered Security
+                </div>
+                <h1 class="hero-title">
+                    Network <span class="text-glow">Intrusion</span><br>
+                    Detection System
+                </h1>
+                <p class="hero-subtitle">
+                    Harness the power of Machine Learning to detect and classify network attacks in real-time.
+                    Trained on the industry-standard <strong>NSL-KDD dataset</strong>, our system identifies
+                    DoS, Probe, R2L, and U2R attacks with high accuracy.
+                </p>
+                <div class="hero-stats d-flex gap-4 mb-4">
+                    <div class="stat-item">
+                        <div class="stat-number" data-count="{{ accuracy }}">0</div>
+                        <div class="stat-label">Accuracy %</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" data-count="5">0</div>
+                        <div class="stat-label">Attack Classes</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" data-count="41">0</div>
+                        <div class="stat-label">Features Analyzed</div>
+                    </div>
+                </div>
+                <div class="hero-actions">
+                    <a href="/predict" class="btn btn-glow btn-lg me-3">
+                        <i class="fas fa-search-plus me-2"></i>Start Detection
+                    </a>
+                    <a href="/about" class="btn btn-outline-glow btn-lg">
+                        <i class="fas fa-book me-2"></i>Learn More
+                    </a>
+                </div>
+            </div>
+            <div class="col-lg-5 d-none d-lg-block">
+                <div class="hero-visual">
+                    <div class="shield-container">
+                        <i class="fas fa-shield-halved shield-icon"></i>
+                        <div class="shield-ring ring-1"></div>
+                        <div class="shield-ring ring-2"></div>
+                        <div class="shield-ring ring-3"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="features-section py-5">
+    <div class="container">
+        <div class="text-center mb-5">
+            <h2 class="section-title">Key <span class="text-glow">Features</span></h2>
+            <p class="section-subtitle">Advanced capabilities powered by machine learning</p>
+        </div>
+        <div class="row g-4">
+            <div class="col-md-6 col-lg-3">
+                <div class="feature-card">
+                    <div class="feature-icon"><i class="fas fa-bolt"></i></div>
+                    <h5>Real-time Detection</h5>
+                    <p>Instantly analyze network traffic and identify potential threats as they happen.</p>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-3">
+                <div class="feature-card">
+                    <div class="feature-icon"><i class="fas fa-brain"></i></div>
+                    <h5>ML-Powered</h5>
+                    <p>Random Forest Classifier with 100 estimators for robust and accurate predictions.</p>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-3">
+                <div class="feature-card">
+                    <div class="feature-icon"><i class="fas fa-database"></i></div>
+                    <h5>NSL-KDD Trained</h5>
+                    <p>Trained on the industry-standard NSL-KDD benchmark dataset for intrusion detection.</p>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-3">
+                <div class="feature-card">
+                    <div class="feature-icon"><i class="fas fa-tags"></i></div>
+                    <h5>Multi-Class</h5>
+                    <p>Classifies traffic into Normal, DoS, Probe, R2L, and U2R categories.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="how-it-works py-5">
+    <div class="container">
+        <div class="text-center mb-5">
+            <h2 class="section-title">How It <span class="text-glow">Works</span></h2>
+            <p class="section-subtitle">Three simple steps to detect network intrusions</p>
+        </div>
+        <div class="row g-4 justify-content-center">
+            <div class="col-md-4">
+                <div class="step-card">
+                    <div class="step-number">01</div>
+                    <div class="step-icon"><i class="fas fa-upload"></i></div>
+                    <h5>Upload Data</h5>
+                    <p>Upload your network traffic data as a CSV file or enter connection details manually.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="step-card">
+                    <div class="step-number">02</div>
+                    <div class="step-icon"><i class="fas fa-cogs"></i></div>
+                    <h5>ML Analysis</h5>
+                    <p>Our Random Forest model analyzes 41 network features to classify the connection.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="step-card">
+                    <div class="step-number">03</div>
+                    <div class="step-icon"><i class="fas fa-chart-pie"></i></div>
+                    <h5>Get Results</h5>
+                    <p>Receive instant classification with confidence scores and detailed visualizations.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="attack-types py-5">
+    <div class="container">
+        <div class="text-center mb-5">
+            <h2 class="section-title">Attack <span class="text-glow">Categories</span></h2>
+            <p class="section-subtitle">Types of network attacks our system detects</p>
+        </div>
+        <div class="row g-4">
+            <div class="col-md-6 col-lg-3">
+                <div class="attack-card attack-dos">
+                    <div class="attack-icon"><i class="fas fa-bomb"></i></div>
+                    <h5>DoS</h5>
+                    <p>Denial of Service — Floods the target to make it unavailable.</p>
+                    <small>neptune, smurf, back, teardrop, pod, land</small>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-3">
+                <div class="attack-card attack-probe">
+                    <div class="attack-icon"><i class="fas fa-satellite-dish"></i></div>
+                    <h5>Probe</h5>
+                    <p>Surveillance — Scans network to find vulnerabilities.</p>
+                    <small>portsweep, ipsweep, nmap, satan</small>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-3">
+                <div class="attack-card attack-r2l">
+                    <div class="attack-icon"><i class="fas fa-user-secret"></i></div>
+                    <h5>R2L</h5>
+                    <p>Remote to Local — Unauthorized access from a remote machine.</p>
+                    <small>guess_passwd, ftp_write, imap, phf, multihop</small>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-3">
+                <div class="attack-card attack-u2r">
+                    <div class="attack-icon"><i class="fas fa-user-shield"></i></div>
+                    <h5>U2R</h5>
+                    <p>User to Root — Privilege escalation to gain root access.</p>
+                    <small>buffer_overflow, rootkit, loadmodule, perl</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="cta-section py-5">
+    <div class="container text-center">
+        <h2 class="mb-3">Ready to Secure Your Network?</h2>
+        <p class="mb-4">Start analyzing your network traffic with our ML-powered intrusion detection system.</p>
+        <a href="/predict" class="btn btn-glow btn-lg">
+            <i class="fas fa-rocket me-2"></i>Launch Detection
+        </a>
+    </div>
+</section>
+{% endblock %}
