@@ -40,68 +40,6 @@
             </div>
         </div>
 
-        <!-- {% if stats.total > 0 %}
-        <div class="row g-4 mb-5">
-            <div class="col-lg-6">
-                <div class="cyber-card">
-                    <h5 class="card-title mb-4">
-                        <i class="fas fa-chart-pie me-2 text-glow"></i>Attack Distribution
-                    </h5>
-                    <canvas id="attackPieChart" height="300"></canvas>
-                </div>
-            </div>
-            <div class="col-lg-6">
-                <div class="cyber-card">
-                    <h5 class="card-title mb-4">
-                        <i class="fas fa-chart-bar me-2 text-glow"></i>Detection by Category
-                    </h5>
-                    <canvas id="attackBarChart" height="300"></canvas>
-                </div>
-            </div>
-        </div>
-
-        <div class="row">
-            <div class="col-12">
-                <div class="cyber-card">
-                    <h5 class="card-title mb-4">
-                        <i class="fas fa-clock me-2 text-glow"></i>Recent Detections
-                    </h5>
-                    <div class="table-responsive">
-                        <table class="table cyber-table">
-                            <thead>
-                                <tr>
-                                    <th>Time</th>
-                                    <th>Classification</th>
-                                    <th>Confidence</th>
-                                    <th>Status</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for r in stats.recent %}
-                                <tr>
-                                    <td><small>{{ r.timestamp }}</small></td>
-                                    <td>
-                                        <span class="badge {% if r.is_attack %}bg-danger{% else %}bg-success{% endif %}">
-                                            {{ r.prediction }}
-                                        </span>
-                                    </td>
-                                    <td>{{ r.confidence }}%</td>
-                                    <td>
-                                        {% if r.is_attack %}
-                                        <i class="fas fa-exclamation-triangle text-danger"></i> Threat
-                                        {% else %}
-                                        <i class="fas fa-shield-halved text-success"></i> Safe
-                                        {% endif %}
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-        {% else %}
         <div class="cyber-card text-center py-5">
             <i class="fas fa-inbox" style="font-size: 4rem; color: #444; margin-bottom: 1rem;"></i>
             <h4>No Detection Data Yet</h4>
@@ -110,16 +48,7 @@
                 <i class="fas fa-search-plus me-2"></i>Start Detection
             </a>
         </div>
-        {% endif %}
+
     </div>
 </section>
-{% endblock %}
-
-{% block scripts %}
-{% if stats.total > 0 %} -->
-<script>
-    const attackTypes = {{ stats.attack_types | tojson }};
-    initDashboardCharts(attackTypes);
-</script>
-{% endif %}
 {% endblock %}

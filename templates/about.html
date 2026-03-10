@@ -38,7 +38,7 @@
                     </h4>
                     <div class="feature-category mb-3">
                         <h6><i class="fas fa-plug me-1"></i> Basic TCP Connection Features (1-9)</h6>
-                        <p class="small text-white ">duration, protocol_type, service, flag, src_bytes, dst_bytes, land, wrong_fragment, urgent</p>
+                        <p class="small text-white">duration, protocol_type, service, flag, src_bytes, dst_bytes, land, wrong_fragment, urgent</p>
                     </div>
                     <div class="feature-category mb-3">
                         <h6><i class="fas fa-file-alt me-1"></i> Content Features (10-22)</h6>
@@ -159,15 +159,6 @@
                 </div>
             </div>
         </div>
-
-        <!-- {% if model_info.feature_importances %}
-        <div class="cyber-card mb-5">
-            <h4 class="card-title mb-4">
-                <i class="fas fa-sort-amount-down me-2 text-glow"></i>Top Feature Importances
-            </h4>
-            <canvas id="featureImportanceChart" height="120"></canvas>
-        </div>
-        {% endif %}
         {% endif %}
 
         <div class="cyber-card">
@@ -195,15 +186,7 @@
                 </div>
             </div>
         </div>
+
     </div>
 </section>
-{% endblock %}
-
-{% block scripts %}
-{% if model_info and model_info.feature_importances %} -->
-<script>
-    const featureImportances = {{ model_info.feature_importances | tojson }};
-    initFeatureImportanceChart(featureImportances);
-</script>
-{% endif %}
 {% endblock %}
