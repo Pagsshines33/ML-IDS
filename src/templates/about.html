@@ -1,0 +1,192 @@
+{% extends "base.html" %}
+{% block title %}About{% endblock %}
+
+{% block content %}
+<section class="page-section py-5" style="margin-top: 80px;">
+    <div class="container">
+        <div class="text-center mb-5">
+            <h2 class="section-title"><i class="fas fa-info-circle me-2"></i>About <span class="text-glow">ML-IDS</span></h2>
+            <p class="section-subtitle">Learn about our intrusion detection system, the dataset, and the model</p>
+        </div>
+
+        <div class="row g-4 mb-5">
+            <div class="col-lg-6">
+                <div class="cyber-card h-100">
+                    <h4 class="card-title mb-3">
+                        <i class="fas fa-database me-2 text-glow"></i>NSL-KDD Dataset
+                    </h4>
+                    <p>
+                        The <strong>NSL-KDD</strong> dataset is an improved version of the original KDD Cup 1999 dataset,
+                        widely used for evaluating network intrusion detection systems. It addresses several issues
+                        found in the original dataset, including removing duplicate records and ensuring a more
+                        balanced distribution of difficulty levels.
+                    </p>
+                    <h6 class="mt-4 text-glow">Key Characteristics:</h6>
+                    <ul class="cyber-list">
+                        <li><strong>Training Set:</strong> ~125,973 records (KDDTrain+)</li>
+                        <li><strong>Testing Set:</strong> ~22,544 records (KDDTest+)</li>
+                        <li><strong>Features:</strong> 41 features per connection</li>
+                        <li><strong>Classes:</strong> Normal + 4 attack categories</li>
+                        <li><strong>Feature Types:</strong> 38 numeric, 3 categorical</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="cyber-card h-100">
+                    <h4 class="card-title mb-3">
+                        <i class="fas fa-project-diagram me-2 text-glow"></i>Feature Categories
+                    </h4>
+                    <div class="feature-category mb-3">
+                        <h6><i class="fas fa-plug me-1"></i> Basic TCP Connection Features (1-9)</h6>
+                        <p class="small text-white">duration, protocol_type, service, flag, src_bytes, dst_bytes, land, wrong_fragment, urgent</p>
+                    </div>
+                    <div class="feature-category mb-3">
+                        <h6><i class="fas fa-file-alt me-1"></i> Content Features (10-22)</h6>
+                        <p class="small text-white">hot, num_failed_logins, logged_in, num_compromised, root_shell, su_attempted, num_root, num_file_creations, num_shells, num_access_files, num_outbound_cmds, is_host_login, is_guest_login</p>
+                    </div>
+                    <div class="feature-category mb-3">
+                        <h6><i class="fas fa-clock me-1"></i> Time-based Traffic Features (23-31)</h6>
+                        <p class="small text-white">count, srv_count, serror_rate, srv_serror_rate, rerror_rate, srv_rerror_rate, same_srv_rate, diff_srv_rate, srv_diff_host_rate</p>
+                    </div>
+                    <div class="feature-category">
+                        <h6><i class="fas fa-server me-1"></i> Host-based Traffic Features (32-41)</h6>
+                        <p class="small text-white">dst_host_count, dst_host_srv_count, dst_host_same_srv_rate, dst_host_diff_srv_rate, dst_host_same_src_port_rate, dst_host_srv_diff_host_rate, dst_host_serror_rate, dst_host_srv_serror_rate, dst_host_rerror_rate, dst_host_srv_rerror_rate</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="cyber-card mb-5">
+            <h4 class="card-title mb-4">
+                <i class="fas fa-skull-crossbones me-2 text-glow"></i>Attack Categories
+            </h4>
+            <div class="table-responsive">
+                <table class="table cyber-table">
+                    <thead>
+                        <tr>
+                            <th>Category</th>
+                            <th>Description</th>
+                            <th>Attack Types</th>
+                            <th>Danger Level</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><span class="badge bg-success">Normal</span></td>
+                            <td>Legitimate network traffic with no malicious intent</td>
+                            <td>-</td>
+                            <td><span class="text-success">Safe</span></td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge bg-danger">DoS</span></td>
+                            <td>Denial of Service - overwhelms target to make it unavailable</td>
+                            <td>back, land, neptune, pod, smurf, teardrop, mailbomb, apache2, processtable, udpstorm</td>
+                            <td><span class="text-danger">Critical</span></td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge bg-warning text-dark">Probe</span></td>
+                            <td>Surveillance/scanning to discover network vulnerabilities</td>
+                            <td>ipsweep, nmap, portsweep, satan, mscan, saint</td>
+                            <td><span class="text-warning">High</span></td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge bg-info">R2L</span></td>
+                            <td>Remote to Local - unauthorized access from a remote machine</td>
+                            <td>ftp_write, guess_passwd, imap, multihop, phf, spy, warezclient, warezmaster, sendmail, named, xlock, xsnoop, worm</td>
+                            <td><span class="text-info">Medium</span></td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge" style="background:#9b59b6;">U2R</span></td>
+                            <td>User to Root - privilege escalation to gain root/admin access</td>
+                            <td>buffer_overflow, loadmodule, perl, rootkit, httptunnel, ps, sqlattack, xterm</td>
+                            <td><span style="color:#9b59b6;">Critical</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        {% if model_info %}
+        <div class="row g-4 mb-5">
+            <div class="col-lg-6">
+                <div class="cyber-card h-100">
+                    <h4 class="card-title mb-3">
+                        <i class="fas fa-brain me-2 text-glow"></i>Model Details
+                    </h4>
+                    <table class="table cyber-table">
+                        <tbody>
+                            <tr><td>Algorithm</td><td><strong>Random Forest Classifier</strong></td></tr>
+                            <tr><td>Number of Trees</td><td>100</td></tr>
+                            <tr><td>Max Depth</td><td>20</td></tr>
+                            <tr><td>Class Weighting</td><td>Balanced</td></tr>
+                            <tr><td>Accuracy</td><td><span class="text-glow fw-bold">{{ model_info.accuracy }}%</span></td></tr>
+                            <tr><td>Preprocessing</td><td>StandardScaler + LabelEncoder</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="cyber-card h-100">
+                    <h4 class="card-title mb-3">
+                        <i class="fas fa-chart-line me-2 text-glow"></i>Per-Class Performance
+                    </h4>
+                    {% if model_info.report %}
+                    <div class="table-responsive">
+                        <table class="table cyber-table small">
+                            <thead>
+                                <tr>
+                                    <th>Class</th>
+                                    <th>Precision</th>
+                                    <th>Recall</th>
+                                    <th>F1-Score</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for cls in model_info.classes %}
+                                {% if cls in model_info.report %}
+                                <tr>
+                                    <td><strong>{{ cls }}</strong></td>
+                                    <td>{{ (model_info.report[cls].precision * 100) | round(1) }}%</td>
+                                    <td>{{ (model_info.report[cls].recall * 100) | round(1) }}%</td>
+                                    <td>{{ (model_info.report[cls]['f1-score'] * 100) | round(1) }}%</td>
+                                </tr>
+                                {% endif %}
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="cyber-card">
+            <h4 class="card-title mb-4">
+                <i class="fas fa-code me-2 text-glow"></i>Technology Stack
+            </h4>
+            <div class="row g-3 text-center">
+                <div class="col-4 col-md-2">
+                    <div class="tech-badge"><i class="fab fa-python"></i><br><small>Python</small></div>
+                </div>
+                <div class="col-4 col-md-2">
+                    <div class="tech-badge"><i class="fas fa-flask"></i><br><small>Flask</small></div>
+                </div>
+                <div class="col-4 col-md-2">
+                    <div class="tech-badge"><i class="fas fa-robot"></i><br><small>Scikit-learn</small></div>
+                </div>
+                <div class="col-4 col-md-2">
+                    <div class="tech-badge"><i class="fas fa-table"></i><br><small>Pandas</small></div>
+                </div>
+                <div class="col-4 col-md-2">
+                    <div class="tech-badge"><i class="fas fa-chart-area"></i><br><small>Chart.js</small></div>
+                </div>
+                <div class="col-4 col-md-2">
+                    <div class="tech-badge"><i class="fab fa-bootstrap"></i><br><small>Bootstrap</small></div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</section>
+{% endblock %}

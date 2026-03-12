@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<section class="page-section py-5" style="margin-top: 80px;">
+    <div class="container">
+        <div class="text-center mb-5">
+            <h2 class="section-title"><i class="fas fa-chart-bar me-2"></i>Detection <span class="text-glow">Dashboard</span></h2>
+            <p class="section-subtitle">Real-time overview of intrusion detection results</p>
+        </div>
+
+        <div class="row g-4 mb-5">
+            <div class="col-md-6 col-lg-3">
+                <div class="stat-card">
+                    <div class="stat-card-icon"><i class="fas fa-network-wired"></i></div>
+                    <div class="stat-card-number" data-count="{{ stats.total }}">{{ stats.total }}</div>
+                    <div class="stat-card-label">Total Analyzed</div>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-3">
+                <div class="stat-card stat-card-danger">
+                    <div class="stat-card-icon"><i class="fas fa-bug"></i></div>
+                    <div class="stat-card-number" data-count="{{ stats.attacks }}">{{ stats.attacks }}</div>
+                    <div class="stat-card-label">Attacks Detected</div>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-3">
+                <div class="stat-card stat-card-success">
+                    <div class="stat-card-icon"><i class="fas fa-check-circle"></i></div>
+                    <div class="stat-card-number" data-count="{{ stats.normal }}">{{ stats.normal }}</div>
+                    <div class="stat-card-label">Normal Traffic</div>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-3">
+                <div class="stat-card stat-card-warning">
+                    <div class="stat-card-icon"><i class="fas fa-percentage"></i></div>
+                    <div class="stat-card-number">{{ stats.detection_rate }}%</div>
+                    <div class="stat-card-label">Attack Rate</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="cyber-card text-center py-5">
+            <i class="fas fa-inbox" style="font-size: 4rem; color: #444; margin-bottom: 1rem;"></i>
+            <h4>No Detection Data Yet</h4>
+            <p class="text-muted mb-4">Start analyzing network traffic to see results here.</p>
+            <a href="/predict" class="btn btn-glow">
+                <i class="fas fa-search-plus me-2"></i>Start Detection
+            </a>
+        </div>
+
+    </div>
+</section>
+{% endblock %}
